@@ -181,7 +181,7 @@ export default {
     }
   },
   mounted() {
-    db.collection('demo_data').limit(1).onSnapshot( snap => {
+    db.collection('demo_data').onSnapshot( snap => {
         var execResult = executeWithTime(async () => {
             await snap.forEach(doc => {
                 index_db.collection('woven_app').add({
