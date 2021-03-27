@@ -16,20 +16,21 @@
         <v-list-item>
           <v-list-item-content>
             <v-list-item-title>Time to sort data</v-list-item-title>
-            <v-list-item-subtitle>12 seconds</v-list-item-subtitle>
-          </v-list-item-content>
-        </v-list-item>
-
-        <v-list-item two-line>
-          <v-list-item-content>
-            <v-list-item-title>Push Time</v-list-item-title>
-            <v-list-item-subtitle>10 seconds</v-list-item-subtitle>
+            <v-list-item-subtitle>Duration: Index Db takes {{ new_data_time_obj.duration_sort_time }} second(s) to sort {{ new_data_time_obj.size }} amount of data</v-list-item-subtitle>
           </v-list-item-content>
         </v-list-item>
         <v-list-item two-line>
           <v-list-item-content>
             <v-list-item-title>Time to accept new data</v-list-item-title>
-            <v-list-item-subtitle>15 seconds</v-list-item-subtitle>
+            <v-list-item-subtitle><b>Insert Time</b></v-list-item-subtitle>
+            <v-list-item-subtitle>Start Insert Time: {{ new_data_time_obj.start_insert_time }}</v-list-item-subtitle>
+            <v-list-item-subtitle>Finish Insert Time: {{ new_data_time_obj.end_insert_time }}</v-list-item-subtitle>
+            <v-list-item-subtitle>Duration: {{ new_data_time_obj.duration_insert_time }} second(s)</v-list-item-subtitle>
+            <v-divider></v-divider>
+            <v-list-item-subtitle><b>Display Time</b></v-list-item-subtitle>
+            <v-list-item-subtitle>Start Display Time: {{ new_data_time_obj.start_display_time }}</v-list-item-subtitle>
+            <v-list-item-subtitle>Finish Display Time: {{ new_data_time_obj.end_display_time }}</v-list-item-subtitle>
+            <v-list-item-subtitle>Duration: {{ new_data_time_obj.duration_display_time }} second(s)</v-list-item-subtitle>
           </v-list-item-content>
         </v-list-item>
       </v-card>
@@ -128,6 +129,10 @@
 
 <script>
 import db from '../firebase/firebaseInit';
+import Localbase from 'localbase';
+import { executeWithTime } from '../firebase/actions';
+let index_db = new Localbase('db');
+index_db.config.debug = false;
 
 export default {
   name: 'Home',
@@ -138,7 +143,18 @@ export default {
       phone: '',
       dob: '',
       address: '',
-      bvn: ''
+      bvn: '',
+      new_data_time_obj: {
+        duration_sort_time: '...',
+        size: '...',
+        start_insert_time: '...',
+        end_insert_time: '...',
+        duration_insert_time: '...',
+        start_display_time: '...',
+        end_display_time: '...',
+        duration_display_time: '...'
+      },
+      data_array: []
     }
   },
   methods: {
@@ -146,32 +162,74 @@ export default {
       if (this.name == '' || this.email == '' || this.phone == '' || this.dob == '' || this.address == '' || this.bvn == '') {
          alert("Please provide all fields!");
       } else {
-        db.collection('demo_data').add({
+        db.collection('contacts').add({
             name: this.name,
             email: this.email,
             phone: this.phone,
             dob: this.dob,
             address: this.address,
             bvn: this.bvn,
+            created_at: new Date()
           })
-            .then(function () {
-              console.log('Document saved!')
+            .then(function (res) {
+              alert('Document saved!')
             })
             .catch(function (error) {
-              console.error('Error adding document: ')
+              alert('Error adding document: ')
             });
       }
     }
   },
   created() {
-    // const start = new Date().getTime();
-    
-    // setTimeout(function () {
-    //   const end = new Date().getTime();
-    //   const diff = end - start;
-    //   const seconds = Math.floor(diff / 1000 % 60);
-    //   console.log(seconds);
-    // }, 5000);
+    db.collection('demo_data').limit(1).onSnapshot( snap => {
+        var execResult = executeWithTime(async () => {
+            await snap.forEach(doc => {
+                index_db.collection('woven_app').add({
+                  name: doc.data().name,
+                  email: doc.data().email,
+                  phone: doc.data().phone,
+                  dob: doc.data().dob,
+                  address: doc.data().address,
+                  bvn: doc.data().bvn
+                }, doc.id)
+            })
+          }
+        );
+
+        this.new_data_time_obj.start_insert_time    = execResult.startTime.toLocaleString();
+        this.new_data_time_obj.end_insert_time      = execResult.stopTime.toLocaleString();
+        this.new_data_time_obj.duration_insert_time = execResult.difference;
+        console.clear();  
+        
+        index_db.collection('woven_app').get().then(data => {
+          var execResultDisplay = executeWithTime(async () => {
+
+            await data.forEach(item => {
+              this.data_array.push(item);
+              console.log(item);
+            });
+          });
+
+          this.new_data_time_obj.start_display_time    = execResultDisplay.startTime.toLocaleString();
+          this.new_data_time_obj.end_display_time      = execResultDisplay.stopTime.toLocaleString();
+          this.new_data_time_obj.duration_display_time = execResultDisplay.difference;
+          this.data_array = [];
+          console.clear();      
+        });
+
+        index_db.collection('woven_app').orderBy('name', 'desc').get().then(data => {
+          var execResultSort = executeWithTime(async () => {
+            await data.forEach(item => {
+              this.data_array.push(item);
+              console.log(item);
+            });
+          });
+          this.new_data_time_obj.duration_sort_time = execResultSort.difference;
+          this.new_data_time_obj.size = this.data_array.length;
+          this.data_array = [];
+          console.clear();     
+        });
+    });
   }
 }
 </script>
