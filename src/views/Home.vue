@@ -181,7 +181,7 @@ export default {
     },
   },
   mounted() {
-    db.collection('demo_data').limit(5000).onSnapshot( snap => {
+    db.collection('demo_data').onSnapshot( snap => {
       console.log(snap);
         var execResult = executeWithTime(async () => {
             await snap.forEach(doc => {
