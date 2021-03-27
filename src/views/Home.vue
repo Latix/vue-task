@@ -143,26 +143,35 @@ export default {
   },
   methods: {
     handleSubmit() {
-      console.log(true);
+      if (this.name == '' || this.email == '' || this.phone == '' || this.dob == '' || this.address == '' || this.bvn == '') {
+         alert("Please provide all fields!");
+      } else {
+        db.collection('demo_data').add({
+            name: this.name,
+            email: this.email,
+            phone: this.phone,
+            dob: this.dob,
+            address: this.address,
+            bvn: this.bvn,
+          })
+            .then(function () {
+              console.log('Document saved!')
+            })
+            .catch(function (error) {
+              console.error('Error adding document: ')
+            });
+      }
     }
   },
   created() {
-    const start = new Date().getTime();
+    // const start = new Date().getTime();
     
-    setTimeout(function () {
-      const end = new Date().getTime();
-      const diff = end - start;
-      const seconds = Math.floor(diff / 1000 % 60);
-      console.log(seconds);
-    }, 5000);
-    // db.collection('demo_data').get().then(snap => {
-    //   var size = snap.size;
-    //   console.log(size);
+    // setTimeout(function () {
     //   const end = new Date().getTime();
     //   const diff = end - start;
     //   const seconds = Math.floor(diff / 1000 % 60);
     //   console.log(seconds);
-    // });
+    // }, 5000);
   }
 }
 </script>
