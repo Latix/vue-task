@@ -180,7 +180,7 @@ export default {
       }
     }
   },
-  created() {
+  mounted() {
     db.collection('demo_data').limit(1).onSnapshot( snap => {
         var execResult = executeWithTime(async () => {
             await snap.forEach(doc => {
