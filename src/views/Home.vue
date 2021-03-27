@@ -11,12 +11,12 @@
         max-width="400"
         tile
       >
-      <v-subheader>INDEXED DB STORAGE ANALYSIS</v-subheader>
+      <v-subheader>LOCAL DB STORAGE ANALYSIS</v-subheader>
       <v-divider></v-divider>
         <v-list-item>
           <v-list-item-content>
             <v-list-item-title>Time to sort data</v-list-item-title>
-            <v-list-item-subtitle>Duration: Index Db takes {{ new_data_time_obj.duration_sort_time }} second(s) to sort {{ new_data_time_obj.size }} amount of data</v-list-item-subtitle>
+            <v-list-item-subtitle>Duration: Local Db takes {{ new_data_time_obj.duration_sort_time }} second(s) to sort {{ new_data_time_obj.size }} amount of data</v-list-item-subtitle>
           </v-list-item-content>
         </v-list-item>
         <v-list-item two-line>
@@ -178,20 +178,21 @@ export default {
               alert('Error adding document: ')
             });
       }
-    }
+    },
   },
-  created() {
-    db.collection('demo_data').limit(1).onSnapshot( snap => {
+  mounted() {
+    db.collection('demo_data').limit(5000).onSnapshot( snap => {
+      console.log(snap);
         var execResult = executeWithTime(async () => {
             await snap.forEach(doc => {
-                index_db.collection('woven_app').add({
+                localStorage.setItem(doc.id, JSON.stringify({
                   name: doc.data().name,
                   email: doc.data().email,
                   phone: doc.data().phone,
                   dob: doc.data().dob,
                   address: doc.data().address,
                   bvn: doc.data().bvn
-                }, doc.id)
+                }));
             })
           }
         );
@@ -200,35 +201,35 @@ export default {
         this.new_data_time_obj.end_insert_time      = execResult.stopTime.toLocaleString();
         this.new_data_time_obj.duration_insert_time = execResult.difference;
         console.clear();  
+
+        var execResultDisplay = executeWithTime(async () => {
+          await Object.keys(localStorage).forEach(function (key) {
+            console.log(localStorage.getItem(key));
+          });
+        });
         
-        index_db.collection('woven_app').get().then(data => {
-          var execResultDisplay = executeWithTime(async () => {
+        this.new_data_time_obj.start_display_time    = execResultDisplay.startTime.toLocaleString();
+        this.new_data_time_obj.end_display_time      = execResultDisplay.stopTime.toLocaleString();
+        this.new_data_time_obj.duration_display_time = execResultDisplay.difference;
+        console.clear();  
 
-            await data.forEach(item => {
-              this.data_array.push(item);
-              console.log(item);
-            });
+        if (localStorage.length > 0) {
+          var storageArray = [];
+          for (var i = 0;i < localStorage.length;i++) {
+            storageArray.push(localStorage.key(i) + localStorage.getItem(localStorage.key(i)));
+          }
+          var sortedArray = storageArray.sort();
+        }
+
+        var execResultSort = executeWithTime(async () => {
+          await sortedArray.forEach((data) => {
+            console.log(data);
           });
-
-          this.new_data_time_obj.start_display_time    = execResultDisplay.startTime.toLocaleString();
-          this.new_data_time_obj.end_display_time      = execResultDisplay.stopTime.toLocaleString();
-          this.new_data_time_obj.duration_display_time = execResultDisplay.difference;
-          this.data_array = [];
-          console.clear();      
         });
 
-        index_db.collection('woven_app').orderBy('name', 'desc').get().then(data => {
-          var execResultSort = executeWithTime(async () => {
-            await data.forEach(item => {
-              this.data_array.push(item);
-              console.log(item);
-            });
-          });
-          this.new_data_time_obj.duration_sort_time = execResultSort.difference;
-          this.new_data_time_obj.size = this.data_array.length;
-          this.data_array = [];
-          console.clear();     
-        });
+        this.new_data_time_obj.duration_sort_time = execResultSort.difference;
+        this.new_data_time_obj.size = localStorage.length;
+        console.clear();     
     });
   }
 }
