@@ -182,7 +182,6 @@ export default {
   },
   mounted() {
     db.collection('demo_data').onSnapshot( snap => {
-      console.log(snap);
         var execResult = executeWithTime(async () => {
             await snap.forEach(doc => {
                 localStorage.setItem(doc.id, JSON.stringify({
